@@ -1,0 +1,24 @@
+# Dependencies and local package-manager caches
+node_modules/
+
+# Playwright output and browser-test artifacts
+playwright-report/
+test-results/
+.playwright/
+
+# Logs
+*.log
+
+# Local environment files; the documented example remains trackable
+.env
+.env.*
+!.env.example
+
+# Temporary browser and operating-system artifacts
+*.tmp
+*.temp
+*.trace
+*.webm
+*.png.tmp
+Thumbs.db
+Desktop.ini
