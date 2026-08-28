@@ -26,8 +26,7 @@
 ### Интерфейс
 - Русский язык.
 - Reference HTML задаёт механику, но визуал нужно улучшить.
-- Стиль: premium TOPGUN, dark graphite, amber accent.
-- Не использовать неоновый киберпанк и generic SaaS-визуал.
+- Стиль: near-black / graphite base, white typography, TOPGUN red and cold blue accents; no neon cyberpunk or generic SaaS visual language.
 - Не перегружать экран.
 - Чётко различать статусы: завершено / сейчас / закрыто.
 - Объяснять ошибки простым языком.
