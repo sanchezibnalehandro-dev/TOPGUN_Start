@@ -14,17 +14,20 @@
     && (window.TOPGUN_PRACTICE?.module02Skills || []).length === 5
     && window.TOPGUN_SOURCES?.policy?.firstRule;
 
-  const renderHeader = () => {
+  const changeTraineeName = () => {
+    const next = window.prompt("Имя стажёра", progress.get().traineeName);
+    if (next !== null) { progress.setTraineeName(next); render(); }
+  };
+
+  const traineeControl = (className = "button button-quiet", label = progress.get().traineeName) => scenes.button(label, className, changeTraineeName);
+
+  const renderHeader = (mode) => {
     const header = scenes.el("header", "app-header");
+    header.classList.add(`app-header-${mode}`);
     const brand = scenes.el("button", "wordmark", "TOPGUN · START");
     brand.type = "button";
     brand.addEventListener("click", () => { engine.route(); render(); });
     const actions = scenes.el("div", "app-actions");
-    const name = scenes.button(progress.get().traineeName, "button button-quiet", () => {
-      const next = window.prompt("Имя стажёра", progress.get().traineeName);
-      if (next !== null) { progress.setTraineeName(next); render(); }
-    });
-    name.disabled = progress.isReadonly();
     const reset = scenes.button("Сбросить прогресс", "button button-danger", () => {
       const message = progress.isReadonly()
         ? "Удалить несовместимый сохранённый прогресс и начать v0.2 заново?"
@@ -32,7 +35,12 @@
       if (!window.confirm(message)) return;
       progress.reset(); engine.route(); render();
     });
-    scenes.append(actions, name, reset);
+    if (mode !== "boot") {
+      const name = traineeControl();
+      name.disabled = progress.isReadonly();
+      actions.append(name);
+    }
+    actions.append(reset);
     scenes.append(header, brand, actions);
     return header;
   };
@@ -53,10 +61,24 @@
 
   const renderBoot = () => {
     const main = scenes.el("main", "boot-screen");
+    const stage = scenes.el("section", "boot-stage");
+    const identity = scenes.el("div", "boot-identity");
+    const logoFrame = scenes.el("div", "boot-logo-frame");
+    const logo = document.createElement("img");
+    logo.className = "boot-logo";
+    logo.src = "assets/topgun-logo.png";
+    logo.alt = "TOPGUN";
+    logoFrame.append(logo);
     const copy = scenes.el("div", "boot-copy");
-    scenes.append(copy, scenes.el("p", "scene-kicker", "Локальная программа стажировки"), scenes.el("h1", "boot-title", "TOPGUN START"), scenes.el("p", "scene-copy", "Маршрут, материал, теория и подтверждение наставником — на этом устройстве."));
+    const trainee = traineeControl("button button-quiet boot-trainee", progress.get().traineeName);
+    trainee.disabled = progress.isReadonly();
     const action = scenes.button(progress.get().currentModuleId === "01" ? "Начать маршрут" : "Продолжить маршрут", "button button-primary button-large", () => { engine.start(); render(); });
-    scenes.append(main, copy, action);
+    const titleLockup = scenes.el("div", "boot-title-lockup");
+    scenes.append(titleLockup, scenes.el("p", "boot-topgun-type", "TOPGUN"), scenes.el("h1", "boot-title", "START"));
+    scenes.append(copy, scenes.el("p", "scene-kicker", "Первый рабочий маршрут"), titleLockup, scenes.el("p", "scene-copy", "Вводный маршрут перед первой сменой: материал, решения и подтверждение наставника."), trainee, action);
+    scenes.append(identity, logoFrame, copy);
+    stage.append(identity);
+    main.append(stage);
     return main;
   };
 
@@ -64,18 +86,23 @@
     const main = scenes.el("main", "route-screen");
     const heading = scenes.el("header", "route-heading");
     scenes.append(heading, scenes.el("p", "scene-kicker", "Маршрут стажировки"), scenes.el("h1", "route-title", "Шесть занятий"), scenes.el("p", "scene-copy", `${progress.routeCompletedCount()} / ${modules.length} завершено · порядок можно изменить только подтверждением наставника.`));
+    const map = scenes.el("section", "route-map");
     const list = scenes.el("nav", "route-list"); list.setAttribute("aria-label", "Маршрут стажировки");
     modules.forEach((module) => {
       const status = progress.moduleStatus(module);
-      const item = scenes.el("button", `route-item route-${status.tone}`);
+      const side = Number(module.id) % 2 === 0 ? "route-node-right" : "route-node-left";
+      const item = scenes.el("button", `route-item ${side} route-${status.tone}`);
       item.type = "button"; item.disabled = status.locked;
       const content = scenes.el("span", "route-item-content");
-      scenes.append(content, scenes.el("span", "route-id", module.id), scenes.el("span", "route-item-title", module.title), scenes.el("span", "route-item-summary", module.summary), scenes.el("span", `route-status status-${status.tone}`, status.label));
+      const copy = scenes.el("span", "route-node-copy");
+      scenes.append(copy, scenes.el("span", "route-item-title", module.title), scenes.el("span", "route-item-summary", module.summary));
+      scenes.append(content, scenes.el("span", "route-id", module.id), copy, scenes.el("span", `route-status status-${status.tone}`, status.label));
       scenes.append(item, content);
       if (!status.locked) item.addEventListener("click", () => { engine.openModule(module.id); render(); });
       list.append(item);
     });
-    scenes.append(main, heading, list);
+    map.append(list);
+    scenes.append(main, heading, map);
     return main;
   };
 
@@ -110,8 +137,8 @@
     app.replaceChildren();
     if (!contentValid) { app.append(scenes.el("p", "scene-error", "Не удалось загрузить структуру v0.2. Проверьте файлы в папке content.")); return; }
     const frame = scenes.el("div", "app-frame");
-    scenes.append(frame, renderHeader(), renderNotices());
     const mode = engine.state().mode;
+    scenes.append(frame, renderHeader(mode), renderNotices());
     if (mode === "boot") frame.append(renderBoot());
     else if (mode === "route") frame.append(renderRoute());
     else if (mode === "module") frame.append(renderModuleScene());
