@@ -1415,3 +1415,118 @@ textarea:focus-visible {
   .mentor-authority-panel { margin-top: 25px; padding: 22px 19px; }
   .mentor-order-panel { margin-top: 24px; }
 }
+
+/* Stage 2 · Phase D: restrained scene motion and consistency polish. */
+:root {
+  --motion-enter: 360ms;
+  --motion-fast: 250ms;
+  --motion-ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+.scene,
+.boot-identity,
+.route-heading {
+  transform-origin: center top;
+}
+.scene-heading .scene-title,
+.quiz-question,
+.result-header .scene-title,
+.qualification-heading .scene-title,
+.mentor-review-heading .scene-title,
+.manifesto-title {
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+.scene-source {
+  max-width: 760px;
+  color: var(--muted);
+  font-size: .69rem;
+  letter-spacing: .06em;
+  line-height: 1.5;
+}
+.decision-panel .interaction-feedback,
+.scene--multi-select .interaction-panel .interaction-feedback,
+.sorter-board .interaction-feedback,
+.quiz-validation,
+.mentor-saved {
+  min-height: 3.2em;
+}
+
+.route-map::after {
+  position: absolute;
+  z-index: 3;
+  right: clamp(12px, 2.6vw, 32px);
+  bottom: 7px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--line);
+  color: var(--muted-strong);
+  background: linear-gradient(180deg, rgba(13, 15, 17, .22), rgba(7, 8, 9, .88));
+  box-shadow: 0 -15px 28px 18px rgba(7, 8, 9, .72);
+  content: "↓";
+  font-size: .9rem;
+  pointer-events: none;
+}
+
+.mentor-eligibility-note {
+  margin: 3px 0 0;
+  padding: 11px 0 0 13px;
+  border-top: 1px solid var(--line);
+  border-left: 2px solid var(--line-strong);
+  color: var(--text-soft);
+  font-size: .82rem;
+  line-height: 1.48;
+}
+.mentor-eligibility-incomplete { border-left-color: var(--blue); color: #d8eafb; }
+.mentor-eligibility-complete { border-left-color: var(--success); color: #d0ead7; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .module-scene-shell > .scene.scene-enter { animation: phase-d-scene-enter var(--motion-enter) var(--motion-ease) both; }
+  .module-scene-shell > .scene.scene-enter ~ .scene-hud { animation: phase-d-ui-enter var(--motion-fast) var(--motion-ease) both; }
+  .module-scene-shell > .scene.scene-enter ~ .scene-navigation { animation: phase-d-ui-enter var(--motion-fast) 70ms var(--motion-ease) both; }
+  .boot-identity { animation: phase-d-identity-enter 440ms var(--motion-ease) both; }
+  .boot-screen::before { animation: phase-d-ambient-drift 7s ease-in-out infinite alternate; }
+  .route-item-content,
+  .route-item::before,
+  .route-item::after,
+  .route-status,
+  .qualification-skill,
+  .qualification-detail,
+  .choice-button,
+  .quiz-choice-row,
+  .choice-row,
+  .interaction-feedback,
+  .mentor-authority-panel { transition: opacity var(--motion-fast) ease, color var(--motion-fast) ease, border-color var(--motion-fast) ease, background-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--motion-ease); }
+  .quiz-progress::before { transition: width 320ms var(--motion-ease); }
+  .qualification-skill:not(:disabled):hover { transform: translateX(3px); }
+  .qualification-skill-active { animation: phase-d-selection-in 300ms var(--motion-ease) both; }
+  .result-scene { animation: phase-d-result-in 380ms var(--motion-ease) both; }
+  .interaction-feedback-success,
+  .interaction-feedback-error { animation: phase-d-feedback-in 250ms var(--motion-ease) both; }
+  .route-map::after { animation: phase-d-scroll-cue 1.7s ease-in-out infinite; }
+  @keyframes phase-d-scene-enter { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes phase-d-ui-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes phase-d-identity-enter { from { opacity: 0; transform: translateY(11px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes phase-d-result-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes phase-d-feedback-in { from { opacity: .01; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes phase-d-selection-in { from { opacity: .55; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes phase-d-ambient-drift { from { opacity: .7; } to { opacity: 1; } }
+  @keyframes phase-d-scroll-cue { 0%, 100% { transform: translateY(0); opacity: .58; } 50% { transform: translateY(3px); opacity: 1; } }
+}
+
+@media (max-width: 620px) {
+  .route-map::after { right: 8px; bottom: 4px; width: 28px; height: 28px; }
+  .qualification-skill-active { border-left: 3px solid var(--blue-bright); padding-left: 9px; }
+  .qualification-detail { scroll-margin-bottom: 24px; }
+  .mentor-eligibility-note { font-size: .79rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

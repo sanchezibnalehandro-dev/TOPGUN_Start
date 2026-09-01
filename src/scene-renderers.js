@@ -469,6 +469,12 @@
     select.disabled = context.readonly; comment.disabled = context.readonly; save.disabled = context.readonly;
     const saved = el("p", "interaction-status mentor-saved", review.confirmedAt ? `Последнее решение: ${new Date(review.confirmedAt).toLocaleString("ru-RU")}` : "Выберите статус и сохраните решение.");
     append(panel, el("p", "field-label", "Полномочия наставника"), el("p", "mentor-status-label", `Текущий статус: ${reviewLabel(selectedStatus)}`), el("label", "field-label", "Статус"), select, el("label", "field-label", "Комментарий"), comment, save, saved);
+    const eligibility = context.progress.moduleComplete(module);
+    if (review.status === "accepted") {
+      append(panel, el("p", `mentor-eligibility-note${eligibility ? " mentor-eligibility-complete" : " mentor-eligibility-incomplete"}`, eligibility
+        ? "Решение наставника сохранено. Занятие завершено по текущим требованиям."
+        : "Решение наставника сохранено, но занятие ещё не завершено: выполните незакрытые требования стажёра."));
+    }
     const moduleIndex = (window.TOPGUN_MODULES || []).findIndex((item) => item.id === module.id);
     const nextModule = window.TOPGUN_MODULES?.[moduleIndex + 1];
     if (nextModule && !context.progress.moduleUnlocked(nextModule)) {

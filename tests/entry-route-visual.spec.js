@@ -72,3 +72,13 @@ test("Route trajectory preserves status semantics and confines 390 px overflow",
   await openRoute(page);
   await expect(page.locator(".route-unfinished")).toHaveCount(1);
 });
+
+test("Phase D suppresses decorative motion under reduced-motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await fresh(page);
+  await expect(page.locator(".boot-identity")).toBeVisible();
+  expect(await page.locator(".boot-identity").evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
+  await openRoute(page);
+  await expect(page.locator(".route-map")).toBeVisible();
+  expect(await page.locator(".route-map").evaluate((node) => getComputedStyle(node, "::after").animationName)).toBe("none");
+});

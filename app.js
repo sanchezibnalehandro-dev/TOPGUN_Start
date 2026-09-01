@@ -106,14 +106,15 @@
     return main;
   };
 
-  const renderModuleScene = () => {
+  const renderModuleScene = ({ sceneTransition = true } = {}) => {
     const shell = scenes.el("main", "module-scene-shell");
     const current = engine.scene();
     const module = engine.module();
     const hud = scenes.el("header", "scene-hud");
     scenes.append(hud, scenes.el("span", "hud-module", `${module.id} · ${module.title}`), scenes.el("span", "hud-progress", `${String(engine.state().sceneIndex + 1).padStart(2, "0")} / ${String(engine.scenes().length).padStart(2, "0")}`));
-    const context = { progress, engine, scene: current, readonly: progress.isReadonly(), complete: () => engine.completeInteraction(current.sectionId), markMaterial: (sectionId) => progress.completeMaterial(module.id, sectionId), rerender: render };
+    const context = { progress, engine, scene: current, readonly: progress.isReadonly(), complete: () => engine.completeInteraction(current.sectionId), markMaterial: (sectionId) => progress.completeMaterial(module.id, sectionId), rerender: () => render({ sceneTransition: false }) };
     const scene = scenes.renderScene(context);
+    if (sceneTransition) scene.classList.add("scene-enter");
     const controls = scenes.el("nav", "scene-navigation"); controls.setAttribute("aria-label", "Навигация по занятию");
     const back = scenes.button("Назад", "button button-quiet", () => { engine.back(); render(); });
     const next = scenes.button(current?.type === "mentor-review" ? "Вернуться к маршруту" : "Далее", "button button-primary", () => { engine.next(); render(); });
@@ -133,7 +134,7 @@
     return card;
   };
 
-  function render() {
+  function render({ sceneTransition = true } = {}) {
     app.replaceChildren();
     if (!contentValid) { app.append(scenes.el("p", "scene-error", "Не удалось загрузить структуру v0.2. Проверьте файлы в папке content.")); return; }
     const frame = scenes.el("div", "app-frame");
@@ -141,7 +142,7 @@
     scenes.append(frame, renderHeader(mode), renderNotices());
     if (mode === "boot") frame.append(renderBoot());
     else if (mode === "route") frame.append(renderRoute());
-    else if (mode === "module") frame.append(renderModuleScene());
+    else if (mode === "module") frame.append(renderModuleScene({ sceneTransition }));
     else frame.append(renderLegacy());
     app.append(frame);
   }

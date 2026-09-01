@@ -207,3 +207,24 @@ test("C1 grouped scene rail restores material completion without changing naviga
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true);
 });
+test("accepted mentor decision remains explicit when Module 02 eligibility is incomplete", async ({ page }) => {
+  await prepareModule02(page, MODULE02_MATERIALS);
+  await nextScene(page, 9);
+  const questions = await page.evaluate(() => window.TOPGUN_QUESTIONS["02"].map((question) => question.correctIndex));
+  for (let index = 0; index < questions.length; index += 1) {
+    await page.locator(".quiz-options .choice-row").nth(questions[index]).click();
+    if (index < questions.length - 1) await page.getByRole("button", { name: "Следующий вопрос" }).click();
+  }
+  await page.getByRole("button", { name: "Проверить ответы" }).click();
+  await nextScene(page, 2);
+  await expect(page.locator(".mentor-authority-panel")).toBeVisible();
+  await page.locator(".mentor-panel select").first().selectOption("accepted");
+  await page.getByRole("button", { name: "Сохранить решение" }).click();
+  await expect(page.locator(".mentor-eligibility-incomplete")).toContainText("Решение наставника сохранено, но занятие ещё не завершено");
+  expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleComplete(window.TOPGUN_PROGRESS_API.getModule("02")))).toBe(false);
+  expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleUnlocked(window.TOPGUN_PROGRESS_API.getModule("03")))).toBe(false);
+  await page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: /Открыть занятие 03 раньше/ }).click();
+  expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleUnlocked(window.TOPGUN_PROGRESS_API.getModule("03")))).toBe(true);
+  expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleComplete(window.TOPGUN_PROGRESS_API.getModule("02")))).toBe(false);
+});
