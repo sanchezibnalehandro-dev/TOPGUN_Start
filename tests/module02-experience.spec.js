@@ -175,3 +175,19 @@ test("theory, Practice Hub and mentor logic complete Module 02 and unlock Module
   expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleComplete(window.TOPGUN_PROGRESS_API.getModule("02")))).toBe(true);
   expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleUnlocked(window.TOPGUN_PROGRESS_API.getModule("03")))).toBe(true);
 });
+
+test("C1 grouped scene rail restores material completion without changing navigation", async ({ page }) => {
+  await prepareModule02(page);
+  await nextScene(page);
+  await expect(page.locator(".scene--grouped-learn .grouped-substep-rail")).toBeVisible();
+  await expect(page.locator(".scene--grouped-learn .canonical-copy--prose")).toBeVisible();
+  await page.getByRole("button", { name: "Продолжить к следующему этапу" }).click();
+  await page.reload();
+  await page.getByRole("button", { name: /Начать маршрут|Продолжить маршрут/ }).click();
+  await page.locator(".route-item").filter({ hasText: "Встреча, консультация и базовые услуги" }).click();
+  await nextScene(page);
+  await expect(page.locator(".scene--grouped-learn .substep-button").first()).toContainText("✓");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true);
+});

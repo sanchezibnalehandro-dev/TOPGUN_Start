@@ -21,12 +21,12 @@
     return names.length ? el("p", "scene-source", `Источник: ${names.join(" · ")}`) : null;
   };
   const canonicalCopy = (section) => {
-    const block = el("div", "canonical-copy");
+    const block = el("div", "canonical-copy canonical-copy--prose");
     if (section.callout) append(block, el("aside", "scene-callout", section.callout));
-    (section.paragraphs || []).forEach((paragraph) => append(block, el("p", "scene-copy", paragraph)));
+    (section.paragraphs || []).forEach((paragraph) => append(block, el("p", "scene-copy canonical-paragraph", paragraph)));
     if (section.bullets?.length) {
-      const list = el("ul", "scene-list");
-      section.bullets.forEach((item) => append(list, el("li", "", item)));
+      const list = el("ul", "scene-list canonical-list");
+      section.bullets.forEach((item) => append(list, el("li", /\d/.test(item) ? "canonical-rule canonical-fact" : "canonical-rule", item)));
       append(block, list);
     }
     append(block, sourceLine(section.sourceIds));
@@ -49,13 +49,13 @@
 
   const renderManifesto = () => {
     const body = el("section", "scene-body scene-manifesto");
-    append(body, el("p", "scene-kicker", "TOPGUN · START"), el("h1", "manifesto-title", "ДИСЦИПЛИНА ВАЖНЕЕ ТАЛАНТА"), el("p", "manifesto-copy", "Вводное занятие — это внимание к клиенту, рабочему месту и собственной ответственности."));
+    const lockup = el("div", "manifesto-lockup"); append(lockup, el("p", "scene-kicker", "TOPGUN · START"), el("h1", "manifesto-title", "ДИСЦИПЛИНА ВАЖНЕЕ ТАЛАНТА"), el("p", "manifesto-copy", "Вводное занятие — это внимание к клиенту, рабочему месту и собственной ответственности.")); append(body, lockup);
     return body;
   };
 
   const renderRules = (context, section) => {
-    const body = el("section", "scene-body");
-    const form = el("fieldset", "interaction-panel interaction-panel-multiselect");
+    const body = el("section", "scene-body decision-scene rules-scene");
+    const form = el("fieldset", "interaction-panel interaction-panel-multiselect decision-panel decision-panel--rules");
     form.disabled = context.readonly;
     append(form, el("legend", "", "До начала смены осталось несколько минут. Что соответствует вводному занятию?"));
     append(form, el("p", "interaction-help", "Выберите все подходящие варианты, затем нажмите «Проверить выбранные варианты». Пока ответ не подтверждён, переход дальше закрыт."));
@@ -111,8 +111,8 @@
   };
 
   const renderAppearance = (context, section) => {
-    const body = el("section", "scene-body");
-    const panel = el("section", "interaction-panel");
+    const body = el("section", "scene-body decision-scene");
+    const panel = el("section", "interaction-panel decision-panel");
     const interaction = context.scene.interaction || { prompt: "Какой принцип нужно сохранить при работе с постоянным гостем?", options: [] };
     append(panel, el("h2", "interaction-title", "Рабочее решение"), el("p", "scene-copy", interaction.prompt));
     const state = context.engine.getSceneState(context.scene.id);
@@ -176,14 +176,14 @@
   };
 
   const renderDisinfection = (context, section) => {
-    const body = el("section", "scene-body");
-    const panel = el("section", "interaction-panel");
-    append(panel, el("h2", "interaction-title", "Соотнесите предмет и способ обработки"));
+    const body = el("section", "scene-body sorter-scene");
+    const panel = el("section", "interaction-panel sorter-board");
+    append(panel, el("h2", "interaction-title", "Соотнесите предмет и способ обработки"), el("p", "sorter-method-heading", "Способ обработки"));
     const rows = [["comb", "Расчёска", "nonmetal"], ["scissors", "Ножницы", "spray"], ["razor", "Бритва", "spray"]];
     const state = context.engine.getSceneState(context.scene.id);
     const complete = materialComplete(context);
     rows.forEach(([key, label]) => {
-      const row = el("label", "sorter-row");
+      const row = el("label", "sorter-row sorter-lane");
       const select = el("select", "field-control");
       select.disabled = context.readonly || complete;
       [["", "Выберите способ"], ["nonmetal", "Аламинол"], ["spray", "Дезинфицирующий спрей"]].forEach(([value, text]) => {
@@ -229,7 +229,7 @@
   });
   const renderDecisionPanel = (context, config, complete, onAccepted) => {
     const state = context.engine.getSceneState(context.scene.id);
-    const panel = el("section", "interaction-panel");
+    const panel = el("section", "interaction-panel decision-panel");
     append(panel, el("h2", "interaction-title", config.title), el("p", "scene-copy", config.prompt));
     (config.options || []).forEach((option) => {
       const control = button(option.label, `choice-button${state.selection === option.id ? " choice-button-selected" : ""}`, () => {
@@ -267,7 +267,7 @@
 
   const renderModuleIntro = (module) => {
     const body = el("section", "scene-body scene-manifesto");
-    append(body, el("p", "scene-kicker", `TOPGUN · ${module.id}`), el("h1", "manifesto-title", module.title), el("p", "manifesto-copy", module.purpose || module.summary));
+    const lockup = el("div", "manifesto-lockup module-intro-lockup"); append(lockup, el("p", "scene-kicker", `TOPGUN · ${module.id}`), el("h1", "manifesto-title", module.title), el("p", "manifesto-copy", module.purpose || module.summary)); append(body, lockup);
     return body;
   };
 
@@ -281,8 +281,8 @@
       : sectionIds.find((sectionId) => !completed(sectionId)) || sectionIds[0];
     const activeIndex = sectionIds.indexOf(activeId);
     const section = module.sections?.find((item) => item.id === activeId);
-    const body = el("section", "scene-body grouped-scene-body");
-    const stepper = el("nav", "substep-nav"); stepper.setAttribute("aria-label", "Шаги сцены");
+    const body = el("section", "scene-body grouped-scene-body grouped-scene-body--editorial");
+    const stepper = el("nav", "substep-nav grouped-substep-rail"); stepper.setAttribute("aria-label", "Шаги сцены");
     sectionIds.forEach((sectionId, index) => {
       const item = module.sections?.find((candidate) => candidate.id === sectionId);
       const done = completed(sectionId);
@@ -477,7 +477,7 @@
   const renderScene = (context) => {
     const module = context.engine.module();
     const scene = context.engine.scene();
-    const article = el("article", "scene");
+    const article = el("article", `scene${scene?.type ? ` scene--${scene.type}` : ""}`);
     if (!scene || !module) return append(article, el("div", "scene-error", "Не удалось загрузить конфигурацию сцены. Прогресс не изменён."));
     if (scene.type === "manifesto") append(article, renderManifesto());
     else {
@@ -488,7 +488,7 @@
       if (!["quiz", "result", "mentor-review", "practice-hub", "module-intro"].includes(scene.type)) append(article, sectionIntro(module, scene, section, context.engine.state().sceneIndex + 1, context.engine.scenes().length));
       if (scene.type === "module-intro") append(article, renderModuleIntro(module));
       if (scene.type === "learn" || scene.type === "resources") {
-        const body = el("section", "scene-body");
+        const body = el("section", `scene-body learn-scene${scene.type === "resources" ? " learn-scene--resources" : ""}`);
         append(body, canonicalCopy(section));
         append(article, body);
       }

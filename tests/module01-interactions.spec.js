@@ -229,3 +229,15 @@ test("file contract keeps schema v2 and the exact local storage key", async ({ p
   }));
   expect(contract).toEqual({ schema: 2, key: "topgun-start-progress", protocol: "file:", questions: 8 });
 });
+
+test("C1 presentation hooks preserve native controls and stable feedback", async ({ page }) => {
+  await prepareModule(page);
+  await expect(page.locator(".scene--manifesto .manifesto-lockup")).toBeVisible();
+  await nextScene(page);
+  await expect(page.locator(".scene--learn .learn-scene .canonical-copy--prose")).toBeVisible();
+  await expect(page.locator(".canonical-paragraph")).toHaveCount(2);
+  await nextScene(page);
+  await expect(page.locator(".scene--multi-select .decision-panel--rules")).toBeVisible();
+  await expect(page.locator('.scene--multi-select input[type="checkbox"]')).toHaveCount(6);
+  await expect(page.locator(".scene--multi-select .interaction-feedback")).toHaveCSS("min-height", /\d/);
+});
