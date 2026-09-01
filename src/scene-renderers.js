@@ -322,7 +322,7 @@
   };
 
   const renderPracticeHub = (context, module) => {
-    const body = el("section", "scene-body practice-hub");
+    const body = el("section", "scene-body practice-hub qualification-board");
     const state = context.engine.getSceneState(context.scene.id);
     const skills = practice().module02Skills || [];
     const selectedSkillId = skills.some((skill) => skill.id === state.selectedSkillId) ? state.selectedSkillId : skills[0]?.id;
@@ -330,24 +330,29 @@
     const progressState = context.progress.get().skills[selectedSkillId];
     const currentLevel = practice().levels?.find((level) => level.id === progressState?.level) || practice().levels?.[0];
     const requirementsDone = context.progress.allModule02SkillsWithMentor();
-    append(body, el("p", "scene-kicker", "Практика с наставником"), el("h1", "scene-title", "КАРТА ПЯТИ НАВЫКОВ"), el("p", "scene-copy", "Стажёр видит статус. Следующий уровень фиксирует наставник; пропуск этапов невозможен."));
-    const grid = el("div", "practice-hub-grid");
-    skills.forEach((skill) => {
+    const heading = el("header", "qualification-heading");
+    append(heading, el("p", "scene-kicker", "Практика с наставником"), el("h1", "scene-title", "КАРТА ПЯТИ НАВЫКОВ"), el("p", "scene-copy", "Стажёр видит статус. Следующий уровень фиксирует наставник; пропуск этапов невозможен."));
+    const grid = el("div", "practice-hub-grid qualification-grid");
+    skills.forEach((skill, index) => {
       const skillState = context.progress.get().skills[skill.id];
       const level = practice().levels?.find((item) => item.id === skillState.level) || practice().levels?.[0];
-      const control = button(`${skill.title} · ${level.label}`, `practice-skill${skill.id === selectedSkillId ? " practice-skill-active" : ""}`, () => {
+      const control = button("", `practice-skill qualification-skill${skill.id === selectedSkillId ? " practice-skill-active" : ""}`, () => {
         context.engine.updateSceneState(context.scene.id, { selectedSkillId: skill.id });
         context.rerender();
       });
       control.disabled = context.readonly;
       control.setAttribute("aria-pressed", skill.id === selectedSkillId ? "true" : "false");
+      append(control, el("span", "qualification-skill-index", String(index + 1).padStart(2, "0")), el("span", "qualification-skill-title", skill.title), el("span", "qualification-skill-level", level.label));
       append(grid, control);
     });
-    const detail = el("section", "practice-detail");
+    const detail = el("section", "practice-detail qualification-detail");
     const nextLevel = practice().levels?.find((level) => level.rank === currentLevel.rank + 1);
     const draft = state.draftReviews?.[selectedSkillId] || { status: progressState?.mentorReview?.status || "pending", comment: progressState?.mentorReview?.comment || "" };
-    append(detail, el("h2", "interaction-title", selected.title), el("p", "scene-copy", `${selected.timing} · текущий уровень: ${currentLevel.label}`));
-    const criteria = el("ul", "scene-list"); (selected.criteria || []).forEach((item) => append(criteria, el("li", "", item))); append(detail, criteria, sourceLine(selected.sourceIds));
+    const detailHeading = el("header", "qualification-detail-heading");
+    append(detailHeading, el("p", "scene-kicker", "Выбранный навык"), el("h2", "interaction-title", selected.title), el("p", "scene-copy", `${selected.timing} · текущий уровень: ${currentLevel.label}`));
+    const criteria = el("ul", "scene-list qualification-criteria"); (selected.criteria || []).forEach((item) => append(criteria, el("li", "", item)));
+    const mentorControls = el("section", "practice-mentor-controls");
+    append(mentorControls, el("p", "field-label", "Действия наставника"), el("p", "scene-copy practice-mentor-copy", "Доступно только следующее разрешённое подтверждение уровня."));
     const advance = button(nextLevel ? `Наставник: подтвердить «${nextLevel.label}»` : "Достигнут максимальный уровень", "button button-primary", () => { context.progress.advanceSkill(selectedSkillId); context.rerender(); });
     advance.disabled = context.readonly || !nextLevel;
     const reviewSelect = el("select", "field-control");
@@ -367,37 +372,42 @@
       context.rerender();
     });
     reviewSelect.disabled = context.readonly; reviewComment.disabled = context.readonly; saveReview.disabled = context.readonly;
-    append(detail, advance, el("label", "field-label", "Решение наставника по навыку"), reviewSelect, reviewComment, saveReview);
-    append(body, grid, detail, interactionStatus(requirementsDone, requirementsDone ? "Все пять навыков достигли уровня «Выполнил с наставником»." : "Для завершения занятия все пять навыков должны достичь уровня «Выполнил с наставником»."));
+    append(mentorControls, advance, el("label", "field-label", "Решение наставника по навыку"), reviewSelect, reviewComment, saveReview);
+    append(detail, detailHeading, criteria, sourceLine(selected.sourceIds), mentorControls);
+    append(body, heading, grid, detail, interactionStatus(requirementsDone, requirementsDone ? "Все пять навыков достигли уровня «Выполнил с наставником»." : "Для завершения занятия все пять навыков должны достичь уровня «Выполнил с наставником»."));
     return body;
   };
 
   const renderQuiz = (context, module) => {
-    const body = el("section", "scene-body");
+    const body = el("section", "scene-body quiz-scene");
     if (!context.progress.materialsDone(module)) {
       append(body, el("div", "scene-error", `Теоретическая проверка откроется после завершения всех ${module.sections?.length || 0} материалов.`));
       return body;
     }
     const questions = context.progress.questionsFor(module);
     const theory = context.progress.moduleState(module.id).theory;
-    const question = questions[context.engine.state().quizIndex];
+    const questionIndex = context.engine.state().quizIndex;
+    const question = questions[questionIndex];
     if (!question) return el("div", "scene-error", "Не удалось загрузить вопрос. Материал не отмечен как завершён.");
-    append(body, el("p", "scene-kicker", `Вопрос ${String(context.engine.state().quizIndex + 1).padStart(2, "0")} / ${String(questions.length).padStart(2, "0")}`), el("h1", "scene-title", question.prompt));
-    const form = el("fieldset", "quiz-options");
+    const quizHeader = el("header", "quiz-header");
+    const progress = el("div", "quiz-progress"); progress.style.setProperty("--quiz-progress", `${((questionIndex + 1) / questions.length) * 100}%`); progress.setAttribute("aria-label", `Вопрос ${questionIndex + 1} из ${questions.length}`);
+    append(quizHeader, el("p", "scene-kicker", `Теория · вопрос ${String(questionIndex + 1).padStart(2, "0")} / ${String(questions.length).padStart(2, "0")}`), progress, el("h1", "scene-title quiz-question", question.prompt));
+    const form = el("fieldset", "quiz-options quiz-decision-list");
     question.options.forEach((option, optionIndex) => {
-      const label = el("label", "choice-row");
+      const label = el("label", "choice-row quiz-choice-row");
       const input = el("input", ""); input.type = "radio"; input.name = question.id; input.checked = Number(theory.answers[question.id]) === optionIndex;
       input.disabled = context.readonly;
       input.addEventListener("change", () => context.progress.setAnswer(module.id, question.id, optionIndex));
-      append(label, input, el("span", "choice-mark"), el("span", "", option)); append(form, label);
+      append(label, input, el("span", "choice-mark"), el("span", "quiz-choice-copy", option)); append(form, label);
     });
-    const actions = el("div", "scene-actions");
-    const prev = button("Предыдущий вопрос", "button button-quiet", () => { context.engine.setQuizIndex(context.engine.state().quizIndex - 1); context.rerender(); });
-    prev.disabled = context.engine.state().quizIndex === 0;
-    const next = button("Следующий вопрос", "button button-secondary", () => { context.engine.setQuizIndex(context.engine.state().quizIndex + 1); context.rerender(); });
-    next.disabled = context.engine.state().quizIndex === questions.length - 1;
+    const actions = el("div", "scene-actions quiz-actions");
+    const prev = button("Предыдущий вопрос", "button button-quiet", () => { context.engine.setQuizIndex(questionIndex - 1); context.rerender(); });
+    prev.disabled = questionIndex === 0;
+    const next = button("Следующий вопрос", "button button-secondary", () => { context.engine.setQuizIndex(questionIndex + 1); context.rerender(); });
+    next.disabled = questionIndex === questions.length - 1;
     append(actions, prev, next);
-    if (context.engine.state().quizIndex === questions.length - 1) {
+    const validation = el("p", "interaction-status quiz-validation", `Попыток: ${theory.attempts}. Ответы можно изменить до проверки.`);
+    if (questionIndex === questions.length - 1) {
       const submit = button("Проверить ответы", "button button-primary", () => {
         if (questions.some((item) => !Number.isInteger(theory.answers[item.id]))) { validation.textContent = "Ответьте на все вопросы перед проверкой."; return; }
         context.engine.finishQuiz(); context.rerender();
@@ -405,42 +415,47 @@
       submit.disabled = context.readonly;
       append(actions, submit);
     }
-    const validation = el("p", "interaction-status", `Попыток: ${theory.attempts}. Ответы можно изменить до проверки.`);
-    append(body, form, actions, validation);
+    append(body, quizHeader, form, actions, validation);
     return body;
   };
 
   const renderResult = (context, module) => {
-    const body = el("section", "scene-body");
     const theory = context.progress.moduleState(module.id).theory;
     const questions = context.progress.questionsFor(module);
     const passed = context.progress.theoryPassed(module);
-    append(body, el("p", "scene-kicker", "Результат теории"), el("h1", "scene-title", passed ? "ТЕОРИЯ ПРОЙДЕНА" : "МАТЕРИАЛ СТОИТ ПОВТОРИТЬ"));
-    append(body, el("p", "result-score", `${theory.lastScore ?? 0} / ${questions.length}`));
-    if (passed) append(body, el("p", "scene-copy", "Ожидает подтверждения наставника. Теория сама по себе не завершает занятие."));
-    else {
-      append(body, el("p", "scene-copy", `Повторите темы: ${theory.incorrectTopics.join(", ") || "все разделы"}. Лучший результат: ${theory.bestScore}/${questions.length}.`));
-      const actions = el("div", "scene-actions");
+    const body = el("section", `scene-body result-scene result-scene--${passed ? "pass" : "fail"}`);
+    const header = el("header", "result-header");
+    append(header, el("p", "scene-kicker", "Результат теории"), el("h1", "scene-title", passed ? "ТЕОРИЯ ПРОЙДЕНА" : "МАТЕРИАЛ СТОИТ ПОВТОРИТЬ"));
+    const score = el("div", "result-score-block");
+    append(score, el("p", "result-score", `${theory.lastScore ?? 0} / ${questions.length}`), el("p", "result-threshold", `Порог теории: ${module.test.passScore} / ${questions.length}`));
+    if (passed) {
+      append(body, header, score, el("p", "scene-copy result-consequence", "Ожидает подтверждения наставника. Теория сама по себе не завершает занятие."));
+    } else {
+      const topics = el("p", "scene-copy result-topics", `Повторите темы: ${theory.incorrectTopics.join(", ") || "все разделы"}. Лучший результат: ${theory.bestScore}/${questions.length}.`);
+      const actions = el("div", "scene-actions result-actions");
       const firstMaterialScene = context.engine.scenes().find((scene) => scene.sectionId || scene.sectionIds?.length);
       append(actions, button("Повторить тест", "button button-primary", () => { context.engine.goTo("exam"); context.rerender(); }), button("Вернуться к материалу", "button button-quiet", () => { if (firstMaterialScene) context.engine.goTo(firstMaterialScene.id); context.rerender(); }));
-      append(body, actions);
+      append(body, header, score, topics, actions);
     }
     return body;
   };
 
   const renderMentor = (context, module) => {
-    const body = el("section", "scene-body");
+    const body = el("section", "scene-body mentor-review-scene");
     const state = context.progress.moduleState(module.id);
     const review = state.mentorReview;
     const transient = context.engine.getSceneState(context.scene.id);
-    append(body, el("p", "scene-kicker", "Разбор с наставником"), el("h1", "scene-title", module.mentorReviewTitle));
-    const requirements = el("div", "requirements-grid");
+    const selectedStatus = transient.status || review.status;
+    const heading = el("header", "mentor-review-heading");
+    append(heading, el("p", "scene-kicker", "Разбор с наставником"), el("h1", "scene-title", module.mentorReviewTitle));
+    const traineeBrief = el("section", "mentor-trainee-brief");
+    const requirements = el("div", "requirements-grid mentor-requirements");
     const requirementItems = [[context.progress.materialsDone(module), "Все материалы завершены"], [context.progress.theoryPassed(module), `Лучший результат не ниже ${module.test.passScore}/${context.progress.questionsFor(module).length}`]];
     if (module.id === "02") requirementItems.push([context.progress.allModule02SkillsWithMentor(), "Все пять навыков — минимум «Выполнил с наставником»"]);
     requirementItems.forEach(([done, text]) => append(requirements, el("div", done ? "requirement requirement-done" : "requirement", `${done ? "✓" : "○"} ${text}`)));
-    const panel = el("section", "mentor-panel");
+    append(traineeBrief, el("p", "field-label", "Статус стажёра"), requirements);
+    const panel = el("section", `mentor-panel mentor-authority-panel mentor-status-${selectedStatus}`);
     const select = el("select", "field-control");
-    const selectedStatus = transient.status || review.status;
     (practice().reviewStatuses || []).forEach((status) => { const option = el("option", "", status.label); option.value = status.id; option.selected = selectedStatus === status.id; append(select, option); });
     select.addEventListener("change", () => context.engine.updateSceneState(context.scene.id, { status: select.value, feedback: "changed" }));
     const comment = el("textarea", "field-control"); comment.value = transient.comment === null ? review.comment : transient.comment; comment.placeholder = "Короткий комментарий наставника";
@@ -452,12 +467,12 @@
       context.rerender();
     });
     select.disabled = context.readonly; comment.disabled = context.readonly; save.disabled = context.readonly;
-    const saved = el("p", "interaction-status", review.confirmedAt ? `Последнее решение: ${new Date(review.confirmedAt).toLocaleString("ru-RU")}` : "Выберите статус и сохраните решение.");
-    append(panel, el("label", "field-label", "Статус"), select, el("label", "field-label", "Комментарий"), comment, save, saved);
+    const saved = el("p", "interaction-status mentor-saved", review.confirmedAt ? `Последнее решение: ${new Date(review.confirmedAt).toLocaleString("ru-RU")}` : "Выберите статус и сохраните решение.");
+    append(panel, el("p", "field-label", "Полномочия наставника"), el("p", "mentor-status-label", `Текущий статус: ${reviewLabel(selectedStatus)}`), el("label", "field-label", "Статус"), select, el("label", "field-label", "Комментарий"), comment, save, saved);
     const moduleIndex = (window.TOPGUN_MODULES || []).findIndex((item) => item.id === module.id);
     const nextModule = window.TOPGUN_MODULES?.[moduleIndex + 1];
     if (nextModule && !context.progress.moduleUnlocked(nextModule)) {
-      const unlock = el("section", "mentor-panel");
+      const unlock = el("section", "mentor-panel mentor-order-panel");
       const unlockComment = el("textarea", "field-control");
       unlockComment.placeholder = "Комментарий наставника — необязательно";
       unlockComment.value = transient.unlockComment || "";
@@ -468,9 +483,9 @@
         context.rerender();
       });
       unlockComment.disabled = context.readonly; unlockButton.disabled = context.readonly;
-      append(unlock, el("h2", "interaction-title", "Изменение порядка практики"), el("p", "scene-copy", "Ручное открытие не меняет тесты, материалы или решение наставника."), unlockComment, unlockButton);
-      append(body, requirements, panel, unlock);
-    } else append(body, requirements, panel);
+      append(unlock, el("p", "field-label", "Изменение порядка практики"), el("p", "scene-copy", "Ручное открытие не меняет тесты, материалы или решение наставника."), unlockComment, unlockButton);
+      append(body, heading, traineeBrief, panel, unlock);
+    } else append(body, heading, traineeBrief, panel);
     return body;
   };
 

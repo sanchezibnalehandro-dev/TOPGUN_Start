@@ -36,7 +36,8 @@ test("combined arrival substeps persist independently through BACK/NEXT and F5",
   await expect(page.getByRole("heading", { name: "До прихода и встреча" })).toBeVisible();
   await expect(page.locator(".substep-button")).toHaveCount(2);
   await page.setViewportSize({ width: 390, height: 844 });
-  expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true);
+  expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).toBe("hidden");
+  expect(await page.locator(".scene--grouped-learn .grouped-scene-body").evaluate((node) => getComputedStyle(node).overflowY)).toBe("auto");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole("button", { name: "Продолжить к следующему этапу" }).click();
   let progress = await storedProgress(page);
@@ -117,6 +118,8 @@ test("consultation, wax and recommendations require correct workplace decisions"
 test("theory, Practice Hub and mentor logic complete Module 02 and unlock Module 03", async ({ page }) => {
   await prepareModule02(page, MODULE02_MATERIALS);
   await nextScene(page, 9);
+  await expect(page.locator(".scene--quiz .quiz-progress")).toBeVisible();
+  await expect(page.locator(".scene--quiz .quiz-decision-list")).toBeVisible();
   const questions = await page.evaluate(() => window.TOPGUN_QUESTIONS["02"].map((question) => ({ correctIndex: question.correctIndex, optionCount: question.options.length })));
 
   for (let index = 0; index < questions.length; index += 1) {
@@ -124,6 +127,7 @@ test("theory, Practice Hub and mentor logic complete Module 02 and unlock Module
     if (index < questions.length - 1) await page.getByRole("button", { name: "Следующий вопрос" }).click();
   }
   await page.getByRole("button", { name: "Проверить ответы" }).click();
+  await expect(page.locator(".result-scene.result-scene--fail")).toBeVisible();
   await expect(page.getByRole("button", { name: "Повторить тест" })).toBeVisible();
   await page.getByRole("button", { name: "Повторить тест" }).click();
   for (let index = 0; index < questions.length; index += 1) {
@@ -131,12 +135,20 @@ test("theory, Practice Hub and mentor logic complete Module 02 and unlock Module
     if (index < questions.length - 1) await page.getByRole("button", { name: "Следующий вопрос" }).click();
   }
   await page.getByRole("button", { name: "Проверить ответы" }).click();
+  await expect(page.locator(".result-scene.result-scene--pass")).toBeVisible();
   let progress = await storedProgress(page);
   expect(progress.modules["02"].theory.lastScore).toBe(10);
   expect(progress.modules["02"].theory.bestScore).toBe(10);
 
   await nextScene(page);
   await expect(page.getByRole("heading", { name: "КАРТА ПЯТИ НАВЫКОВ" })).toBeVisible();
+  await expect(page.locator(".qualification-board .qualification-skill")).toHaveCount(5);
+  await expect(page.locator(".practice-mentor-controls")).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  expect(await page.evaluate(() => getComputedStyle(document.body).overflow)).toBe("hidden");
+  expect(await page.locator(".qualification-board").evaluate((node) => node.scrollHeight >= node.clientHeight)).toBe(true);
+  await page.setViewportSize({ width: 1440, height: 900 });
   await page.locator(".practice-detail select").selectOption("accepted");
   await page.locator(".practice-detail textarea").fill("Первое наблюдение зафиксировано наставником");
   await page.getByRole("button", { name: "Сохранить проверку навыка" }).click();
@@ -166,12 +178,16 @@ test("theory, Practice Hub and mentor logic complete Module 02 and unlock Module
   for (const skillId of ["haircut_male", "scalp_premium", "beard_modeling", "wax_correction", "gray_camouflage"]) expect(progress.skills[skillId].level).toBe("with_mentor");
 
   await nextScene(page);
+  await expect(page.locator(".mentor-trainee-brief")).toBeVisible();
+  await expect(page.locator(".mentor-authority-panel.mentor-status-pending")).toBeVisible();
   expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleUnlocked(window.TOPGUN_PROGRESS_API.getModule("03")))).toBe(false);
   await page.locator(".mentor-panel select").first().selectOption("repeat");
   await page.getByRole("button", { name: "Сохранить решение" }).click();
+  await expect(page.locator(".mentor-authority-panel.mentor-status-repeat")).toBeVisible();
   expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleUnlocked(window.TOPGUN_PROGRESS_API.getModule("03")))).toBe(false);
   await page.locator(".mentor-panel select").first().selectOption("accepted");
   await page.getByRole("button", { name: "Сохранить решение" }).click();
+  await expect(page.locator(".mentor-authority-panel.mentor-status-accepted")).toBeVisible();
   expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleComplete(window.TOPGUN_PROGRESS_API.getModule("02")))).toBe(true);
   expect(await page.evaluate(() => window.TOPGUN_PROGRESS_API.moduleUnlocked(window.TOPGUN_PROGRESS_API.getModule("03")))).toBe(true);
 });
